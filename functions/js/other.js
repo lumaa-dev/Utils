@@ -1,0 +1,321 @@
+const Discord = require("discord.js");
+const { translate, seperator } = require("../../main");
+const { lang, emojis, modalPrefabs } = require(".././config.json").utils;
+const config = require("../config.json");
+const { randomColor } = require("./embeds");
+const ModalCreator = require("../modalCreator");
+const fs = require("fs")
+
+class Data {
+	constructor(filePath, requireable = false) {
+		this.filePath = filePath;
+		this.content = null;
+		if (requireable) this.content = require(filePath);
+	}
+
+
+	/**
+	 * The function takes a modal object as a parameter and saves it.
+	 * @param {ModalCreator} modalCreator - The modal object that is being saved.
+	 * @param {Boolean} newFile New file or not
+	 */
+	saveModal(modalCreator) {
+		let { data: modal } = modalCreator;
+		/**@type {Discord.TextChannel} */
+		const outputChannel = modalCreator.channels.output;
+
+		if (hasFile(this.filePath, outputChannel.guild)) {
+			const json = {
+				title: modal.title,
+				questions: modal.questions,
+				placeholders: modal.placeholders,
+				maxChars: modal.maxChars,
+				outputChannel: outputChannel.id
+			}
+			const serverPath = `${this.filePath}${seperator}${outputChannel.guild.id}.json`;
+
+			const parsed = JSON.parse(fs.readFileSync(serverPath));
+			parsed.push(json);
+			fs.writeFileSync(serverPath, JSON.stringify(parsed))
+			// saved :D
+			return;
+		} else {
+			const json = [{
+				title: modal.title,
+				questions: modal.questions,
+				placeholders: modal.placeholders,
+				maxChars: modal.maxChars,
+				outputChannel: outputChannel.id
+			}]
+
+			const stringified = JSON.stringify(json);
+			fs.writeFileSync(`${this.filePath}${seperator}${outputChannel.guild.id}.json`, stringified)
+			// saved :D
+			return;
+
+		}
+
+		/**
+		 * @param {Data} fileData
+		 * @param {Guild} guild
+		 */
+		function hasFile(fileData, guild) {
+			let filePath = `${fileData.filePath}${seperator}${guild.id}.json`;
+			return fs.existsSync(filePath);
+		}
+	}
+}
+
+/**
+ * DataType
+ * @param {"server"|"user"} type 
+ * @returns Data class
+ */
+const dt = function (type) {
+	switch (type) {
+		case "server":
+			return new Data("../../data/server", true)
+	
+		case "user": 
+			throw new Error("No user data yet.")
+
+		default:
+			return new Data("../../data/server", true) // default
+	}
+}
+
+module.exports.Data = Data;
+module.exports.DataType = dt;
+module.exports = {
+	regexs() {
+		return {
+			commas: /,( )?/g,
+			urls: /(http(s?):\/\/www\.)*([A-z]+(\.([a-z]+)?)+)+/gi,
+			maths: {
+				correctMaths:
+					/^(-|\+)?(\d(\.\d)?)+( ?)(?:[-+*\/]( ?)(-?|\+?)+\d+(?:\.\d+)?(?:=\d+(?:\.\d+)?)?)$/g,
+			},
+			// firstSmallChar: /^[a-z]?/gm
+		};
+	},
+
+	async smartEval(interaction, evaluation, showPromise = true, client) {
+		if (showPromise === false) {
+			await interaction.deferReply({ ephemeral: true });
+			interaction.editReply({
+				content: "Executing: ```js\n" + evaluation + "```",
+				ephemeral: true,
+			});
+			try {
+				await eval(evaluation);
+			} catch (e) {
+				await interaction.followUp({ content: `${e}`, ephemeral: true });
+				console.error(e);
+			}
+		} else if (showPromise === true) {
+			await interaction.deferReply({ ephemeral: true });
+			try {
+				const promise = await eval(evaluation);
+				await interaction.editReply({
+					ephemeral: true,
+					content: `Successful!\nResult:\n\`\`\`${promise}\`\`\``,
+				});
+			} catch (e) {
+				await interaction.followUp({ content: `${e}`, ephemeral: true });
+				console.error(e);
+			}
+		}
+	},
+
+	createPoll(channel, question, choice1 = "✅ - Yes", choice2 = "❌ - No") {
+		//Choices format : "[emoji] - [option]"
+		if (!question || !channel) return console.error("Error in createPoll()");
+		var emoji1 = choice1.charAt(0);
+		var emoji2 = choice2.charAt(0);
+		let poll = new Discord.MessageEmbed()
+			.setTitle(question)
+			.description(`${choice1}\n${choice2}`)
+			.setColor(randomColor())
+			.setTimestamp();
+		//console.log(`${emoji1} / ${emoji2}`)
+		channel
+			.send({ embeds: [poll] })
+			.then(async (message) => {
+				await message.react(emoji1);
+				await message.react(emoji2);
+			})
+			.then(() => {
+				return console.log("Poll sent perfectly");
+			})
+			.catch(console.error);
+	},
+
+	async youtubeSearch(query) {
+		const videoFinder = async (query) => {
+			const videoResult = await ytSearch(query);
+			return videoResult.videos.length > 1 ? videoResult.videos[0] : null;
+		};
+		const video = await videoFinder(query);
+		console.log(video);
+
+		if (video) return video;
+		if (!video) return console.error('No YT videos found with "' + query + '"');
+	},
+
+	correctEpoch(epoch = "1533135944000") {
+		epoch = epoch.toString();
+		if (epoch.length !== 13) {
+			console.error("Incorrect Epoch");
+			return epoch;
+		}
+		return epoch.substring(0, epoch.length - 3);
+	},
+
+	setFirstCap(string) {
+		string = string.toLowerCase();
+
+		let firstChar = string.charAt(0).toUpperCase();
+		let end = string.substring(1);
+
+		return `${firstChar}${end}`;
+	},
+
+	snowflakeToCreation(snowflake) {
+		if (!snowflake || typeof snowflake == "undefined" || snowflake < 4194304)
+			return console.error("No valid snowflakes provided");
+
+		const epochwords = new Date(snowflake / 4194304 + 1420070400000).toString();
+		var epochunix = Date.parse(epochwords).toString();
+
+		const epoch = this.correctEpoch(epochunix);
+		return epoch;
+	},
+
+	humanTimeToEpoch(humanTime, correct = true) {
+		date = new Date(humanTime); // Your timezone!
+		epoch = date.getTime() / 1000.0;
+		epoch = epoch.toString().replace(".", "");
+		if (correct === true) epoch = this.correctEpoch(epoch);
+
+		return epoch;
+	},
+
+	async calculate(operation) {
+		var regexs = this.regexs();
+		if (typeof operation !== "string") return null;
+		o = operation.replace(" ", "");
+		o = o.replace(",", ".");
+		if (o.match(regexs.maths.correctMaths)) {
+			res = o.split(regexs.maths.correctMaths);
+			const userResult = res[res.length - 1];
+			o = o.split(/(?:=\d+(?:\.\d+)?)?$/)[0];
+			const result = await eval(o);
+			if (userResult !== "") {
+				if (userResult.split("=")[1] == `${result}`) return `good|${result}`;
+				if (userResult.split("=")[1] !== `${result}`)
+					return `bad|${result}|${userResult.split("=")[1]}`;
+			} else {
+				return `${result}`;
+			}
+		} else {
+			return null;
+		}
+	},
+
+	async prettyMaths(operation) {
+		const signs = ["+", "-", "*", "/", "="];
+		signs.forEach((sign) => {
+			operation = operation.replace(sign, ` ${sign} `);
+		});
+		return operation;
+	},
+
+	async play(channel, resource) {
+		const connection = await joinVoiceChannel({
+			channelId: channel.id,
+			guildId: channel.guild.id,
+			adapterCreator: channel.guild.voiceAdapterCreator,
+		});
+
+		const player = await createAudioPlayer();
+		const audioResource = await createAudioResource(resource);
+
+		await player.play(audioResource);
+		connection.subscribe(player);
+
+		return player;
+	},
+
+	checkConfig() {
+		if (typeof config !== "object") throw new Error("Config hasn't been found");
+	},
+
+	/**
+	 * Randomizes an array
+	 * @param {*} array The array to shuffle
+	 * @returns Randomized Array
+	 */
+	shuffle(array) {
+		if (!Array.isArray(array)) throw new Error("Item is not an array");
+
+		let currentIndex = array.length,
+			randomIndex;
+
+		while (currentIndex != 0) {
+			randomIndex = Math.floor(Math.random() * currentIndex);
+			currentIndex--;
+
+			[array[currentIndex], array[randomIndex]] = [
+				array[randomIndex],
+				array[currentIndex],
+			];
+		}
+
+		return array;
+	},
+
+	/**
+	 *
+	 * @param {*} channel The channel to send the messages
+	 * @param {*} timestamp The timestamp of the event you want to get pinged for
+	 * @param {*} data Necessary Informations
+	 */
+	pingAtTimestamp(
+		channel,
+		timestamp = Date.now() + 60,
+		data = {
+			title: "None?",
+			description: "You reminder calls!",
+			pingWho: [channel.id],
+			everyone: false,
+			whyCall: "Reminder",
+		}
+	) {
+		setInterval(() => {
+			var now = Date.now();
+			var regexs = this.regexs();
+
+			if (now >= timestamp) {
+				let embed = new Discord.MessageEmbed()
+					.setTitle(`${data.whyCall}: ${data.title}`)
+					.setDescription(data.description)
+					.setTimestamp(timestamp);
+
+				let pinged = data.pingWho.toString().replace(regexs.commas, " ");
+
+				channel.send({
+					content: `${everyone ? "@everyone" : `${pinged}`}`,
+					embeds: [embed],
+				});
+			}
+		}, 5 * 1000);
+	},
+
+	checkUrls(string) {
+		if (string.match(this.regexs().urls)) {
+			return string.replace(this.regexs().urls, "[Website]");
+		} else {
+			//console.log("no urls detected")
+		}
+	},
+};
