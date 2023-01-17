@@ -1,5 +1,5 @@
 # Utils
-This **JavaScript** project was never __continued__. It stopped around the 14th 05
+This **JavaScript** project will be __continued__. It stopped around the 14th 05
 
 This bot is a protection/moderation bot which was more intelligent than those "RaidProtect" bots *winky face you get it?*  
 **THERE WON'T BE AN ENGLISH TRANSLATION FROM MY END.**
