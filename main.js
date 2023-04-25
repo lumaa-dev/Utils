@@ -32,7 +32,7 @@ client.once("ready", async () => {
 	await setStatus(
 		client,
 		"online",
-		"lumination.brebond.com",
+		"lumaa.brebond.com",
 		Discord.ActivityType.Watching
 	);
 	
