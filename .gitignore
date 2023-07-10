@@ -1,2 +1,5 @@
 /node_modules
-/functions/token.json
+tempo.js
+
+# token
+/functions/config.json
