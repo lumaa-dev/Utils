@@ -7,15 +7,11 @@ const {
 	SelectMenuBuilder,
 	EmbedBuilder,
 	ComponentType,
-	Interaction,
-	Guild,
 } = require("discord.js");
 const { awaitInteraction } = require("../functions/js/cmds");
 const ModalCreator = require("../functions/modalCreator");
-const { Data, DataType: dt } = require("../functions/js/other")
-const { translate, seperator } = require("../main");
+const { translate } = require("../main");
 const { modalPrefabs: prefabs } = require("../functions/config.json").utils;
-const fs = require("fs")
 
 module.exports = {
 	data: {
@@ -26,10 +22,6 @@ module.exports = {
 		usage: ["/modal"],
 		dev: false,
 	},
-	/**
-	 * @param {Interaction} interaction 
-	 * @returns 
-	 */
 	async execute(interaction, client = null) {
 		if (
 			!interaction.member.permissions.has([PermissionFlagsBits.ManageMessages])
@@ -41,13 +33,8 @@ module.exports = {
 
 		var translated = [];
 		prefabs.forEach((prefab) => {
-			let option = {
-				label: prefab.label,
-				value: prefab.value,
-				emoji: prefab.emoji,
-			};
-			option.label = translate(prefab.label, interaction.guild);
-			translated.push(option);
+			prefab.label = translate(prefab.label, interaction.guild);
+			translated.push(prefab);
 		});
 
 		const selectPreset = new SelectMenuBuilder()
@@ -150,7 +137,7 @@ module.exports = {
 								translate("prefab.report.question2", _interaction.guild),
 								translate("prefab.report.question3", _interaction.guild),
 							],
-							new Array(3).fill(
+							new Array(4).fill(
 								translate("placeholder.modal.default", _interaction.guild)
 							)
 						);

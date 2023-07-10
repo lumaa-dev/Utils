@@ -2,7 +2,6 @@ const fs = require("fs");
 const { EmbedBuilder } = require("discord.js");
 const { onlyJs } = require("../functions/js/cmds");
 const { error } = require("../main");
-const { test } = require("../functions/config.json");
 
 module.exports = {
 	data: {
@@ -24,6 +23,7 @@ module.exports = {
 	},
 	async execute(interaction) {
 		const input = interaction.options?.getString("commande");
+		await interaction.deferReply();
 
 		if (input !== null) {
 			var data, customData;
@@ -32,13 +32,11 @@ module.exports = {
 				data = dataB;
 				customData = customDataB;
 			} catch (e) {
-				return interaction.reply({
+				return interaction.editReply({
 					embeds: [error("La commande n'a pas été trouvée")],
-					ephemeral: true,
 				});
 			}
 			const ephemeral = customData.dev ? true : false;
-			await interaction.deferReply({ ephemeral: ephemeral });
 
 			const cmdEmbed = new EmbedBuilder()
 				.setTitle(`/${data.name}`)
@@ -50,7 +48,7 @@ module.exports = {
 				//.setFooter({ text: customData.category })
 				.setColor("Random");
 
-			await interaction.editReply({ embeds: [cmdEmbed] });
+			await interaction.editReply({ ephemeral: ephemeral, embeds: [cmdEmbed] });
 		} else {
 			var cmdsNames = [];
 			const filtered = await filterCmds(false, false);
@@ -72,14 +70,10 @@ module.exports = {
 	async completeAuto(interaction) {
 		const input = interaction.options.getFocused();
 
-		const cmds = await filterCmds(false, test);
+		const cmds = await filterCmds(false, false);
 		const filtered = cmds.filter((cmd) => {
-			if (cmd.data.name !== "help") {
-				if (test === true) {
-					return cmd.data.name.startsWith(input);
-				} else if (cmd.customData.dev !== true) {
-					return cmd.data.name.startsWith(input);
-				}
+			if (cmd.data.name !== "help" && cmd.customData.dev !== true) {
+				return cmd.data.name.startsWith(input);
 			}
 		});
 

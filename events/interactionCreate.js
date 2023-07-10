@@ -1,10 +1,15 @@
 const {
 	ActionRowBuilder,
 	ButtonBuilder,
+	ButtonStyle,
+	ChannelType,
+	ComponentType,
 	EmbedBuilder,
 	ModalBuilder,
 	TextInputBuilder,
+	TextInputStyle,
 	SelectMenuBuilder,
+	MessageType,
 	Collection,
 	GuildMember,
 	Embed,
@@ -16,22 +21,14 @@ const {
 	ClientUser,
 	BaseGuildTextChannel,
 	ModalSubmitInteraction,
-	SelectMenuInteraction,
-	TextInputStyle,
-	ComponentType,
-	ChannelType,
-	ButtonStyle,
 } = require("discord.js");
 const {
-	awaitInteraction,
 	awaitMessage,
+	awaitInteraction,
 	awaitModal,
-	toggleButton,
 } = require("../functions/js/cmds");
-const { Data, DataType } = require("../functions/js/other");
 const ModalCreator = require("../functions/modalCreator");
 const { succeed, error, loading, translate } = require("../main");
-const { emojis } = require("../functions/config.json").utils;
 
 module.exports = {
 	/**
@@ -110,14 +107,14 @@ module.exports = {
 				const ticket =
 					message.components[0].components[0].data.options[ticketIndex];
 				const threads = message.channel.threads;
-				const components = new ActionRowBuilder().setComponents([
+				const components = new ActionRowBuilder().setComponents(
 					new ButtonBuilder()
 						.setCustomId("cutTicket")
 						.setStyle(ButtonStyle.Danger)
 						.setEmoji({ name: "✂️" })
 						.setLabel("Couper le ticket")
-						.setDisabled(false),
-				]);
+						.setDisabled(false)
+				);
 
 				if (value.split("_")[1] == "other") {
 					await interaction.reply({
@@ -168,130 +165,6 @@ module.exports = {
 						components: [components],
 					});
 				}
-			} else if (name.startsWith("cm")) {
-				const oldEmbed = message.embeds[0];
-				if (oldEmbed.footer.iconURL !== interaction.user.displayAvatarURL())
-					return interaction.reply({
-						embeds: [error(translate("error.ownModal", interaction.guild))],
-						ephemeral: true,
-					});
-				let action = name.split("_")[1];
-
-				if (action === "chng") {
-					let name = values[0];
-					let action = name.split("_")[1];
-
-					if (action === "maxChar") {
-						let modalCreator = new ModalCreator(client);
-						modalCreator.build(
-							interaction.member,
-							oldEmbed.author.name,
-							getQuestions(oldEmbed),
-							getPlaceholders(oldEmbed)
-						);
-						let selectMenu = modalCreator.select();
-
-						const selectQuestion = await interaction.channel.send({
-							embeds: [
-								loading(translate("edit.modal.question", interaction.guild)),
-							],
-							components: [new ActionRowBuilder().setComponents([selectMenu])],
-						});
-
-						await awaitInteraction(
-							selectQuestion,
-							interaction.user,
-							ComponentType.SelectMenu,
-							async (/**@type {SelectMenuInteraction} */ _interaction) => {
-								let { customId: name, values, message } = _interaction;
-
-								if (name === "edt_qst") {
-									const value = values[0];
-									const qstIndex = value.split("_")[1];
-									message.edit({
-										embeds: [loading(translate("loading", interaction.guild))],
-										components: [
-											new ActionRowBuilder().setComponents([
-												selectMenu.setDisabled(true),
-											]),
-										],
-									});
-
-									message.modalEdit = new Collection();
-									message.modalEdit = qstIndex;
-
-									const edtModal = new ModalBuilder()
-										.setTitle(
-											translate(
-												"select.modal.maxChar",
-												_interaction.guild,
-												qstIndex
-											)
-										)
-										.setComponents([
-											new ActionRowBuilder().setComponents([
-												new TextInputBuilder()
-													.setLabel(
-														translate("edit.modal.chars", _interaction.guild)
-													)
-													.setMaxLength(4)
-													.setMinLength(1)
-													.setRequired(true)
-													.setPlaceholder("100")
-													.setStyle(TextInputStyle.Short)
-													.setCustomId("maxChars"),
-											]),
-										])
-										.setCustomId("cm_chngChar");
-
-									await _interaction.showModal(edtModal);
-									await awaitModal(
-										_interaction,
-										_interaction.user,
-										async (
-											/**@type {ModalSubmitInteraction} */ _interaction
-										) => {
-											let {
-												customId: name,
-												fields: components,
-												message,
-											} = _interaction;
-
-											await message.delete();
-											const chars = clamp(
-												Number(components.getTextInputValue("maxChars")),
-												1,
-												4000
-											);
-
-											modalCreator.changeAnswerChars(qstIndex, chars);
-										}
-									);
-								}
-							}
-						);
-
-						await interaction.update(modalCreator.builder);
-					}
-
-					/**@param {Embed} embed */
-					function getQuestions(embed) {
-						let qsts = [];
-						embed.fields.forEach((field) => {
-							qsts.push(field.name);
-						});
-						return qsts;
-					}
-
-					/**@param {Embed} embed */
-					function getPlaceholders(embed) {
-						let qsts = [];
-						embed.fields.forEach((field) => {
-							qsts.push(field.value.substring(1, field.value.length - 1));
-						});
-						return qsts;
-					}
-				}
 			}
 		} else if (interaction.isButton()) {
 			let { customId: name, message } = interaction;
@@ -334,7 +207,7 @@ module.exports = {
 
 					message.edit({
 						components: [
-							new ActionRowBuilder().setComponents([
+							new ActionRowBuilder().setComponents(
 								new ButtonBuilder()
 									.setCustomId("acceptNick")
 									.setDisabled(true)
@@ -345,9 +218,9 @@ module.exports = {
 									.setCustomId("denyNick")
 									.setDisabled(true)
 									.setLabel("Refuser")
-									.setStyle(ButtonStyle.Danger),
+									.setStyle(ButtonStyle.Danger)
 								//.setEmoji("❌")
-							]),
+							),
 						],
 						embeds: [embed],
 					});
@@ -542,10 +415,7 @@ module.exports = {
 										translate("edit.modal.title", interaction.guild, qstIndex)
 									)
 									.setComponents(
-										fieldToRows(
-											message.embeds[0].fields[qstIndex],
-											interaction.guild
-										)
+										fieldToRows(message.embeds[0].fields[qstIndex])
 									)
 									.setCustomId("cm_edt");
 
@@ -554,6 +424,30 @@ module.exports = {
 							}
 						}
 					);
+
+					function fieldToRows(field) {
+						const qstInput = new TextInputBuilder()
+							.setCustomId("qst")
+							.setLabel(translate("add.modal.question", interaction.guild))
+							.setStyle(TextInputStyle.Short)
+							.setMaxLength(45)
+							.setRequired(true)
+							.setValue(field.name);
+
+						const phInput = new TextInputBuilder()
+							.setCustomId("ph")
+							.setLabel(translate("add.modal.placeholder", interaction.guild))
+							.setStyle(TextInputStyle.Short)
+							.setMaxLength(100)
+							// .setPlaceholder(`Comme celui que vous lisez actuellement`)
+							.setRequired(true)
+							.setValue(field.value.substring(1, field.value.length - 1));
+
+						const newQstAr = new ActionRowBuilder().addComponents([qstInput]);
+						const phAr = new ActionRowBuilder().addComponents([phInput]);
+
+						return [newQstAr, phAr];
+					}
 				} else if (action === "rmvQsts") {
 					// remove questions
 
@@ -728,19 +622,14 @@ module.exports = {
 					);
 
 					if (modalChannel.isText()) {
-						const schema = compactModalEmbed(
-							oldEmbed,
-							interaction.guild,
-							client.user,
-							outputChannel.id,
-							false
-						)
-
-						
-
-						const modalMsg = await modalChannel.send({
+						await modalChannel.send({
 							embeds: [
-								schema.embed
+								compactModalEmbed(
+									oldEmbed,
+									interaction.guild,
+									client.user,
+									outputChannel.id
+								),
 							],
 							components: [
 								new ActionRowBuilder().setComponents([
@@ -758,10 +647,6 @@ module.exports = {
 								]),
 							],
 						});
-
-						const serverData = new Data(DataType("server"));
-						new ModalCreator(client).build(interaction.member, )
-
 						await interaction.editReply({
 							embeds: [
 								succeed(
@@ -776,51 +661,7 @@ module.exports = {
 					}
 				}
 			} else if (name === "openModal") {
-				//const customModal = embedToModal(message.embeds[0].data, false);
-				await connectMongo().then(async mangoose => {
-					if (!cache[interaction.guild.id]) {
-						try {
-							let log = require("../functions/config.json").log
-							if (log === true) console.log(`Fetching ${interaction.guild.id} from DB`)
-							var result = await modalSchema.findOne({ _id: interaction.guild.id, _msg: message.id })
-						} finally {
-							mangoose.connection.close()
-						}
-					}
-					cache[interaction.guild.id] = {
-						_id: result._id,
-						_msg: result._msg,
-						outputId: result.outputId,
-						modalJson: result.modalJson
-					}
-				})
-
-				const object = JSON.parse(cache[interaction.guild.id].modalJson)
-
-				var customModal = new ModalBuilder()
-					.setTitle(object.title)
-					.setCustomId(`customModal`);
-
-				var actionrows = [];
-
-				for (let i = 0; i < object.questions.length; i++) {
-					const question = object.questions[i];
-					const placeholder = object.placeholders[i];
-
-					actionrows.push(
-						new ActionRowBuilder().setComponents([
-							new TextInputBuilder()
-								.setCustomId("no_" + i.toString())
-								.setLabel(question)
-								.setStyle(TextInputStyle.Short)
-								.setMaxLength(100)
-								.setPlaceholder(placeholder)
-								.setRequired(true),
-						])
-					);
-				}
-
-				customModal.setComponents(actionrows);
+				const customModal = embedToModal(message.embeds[0].data, false);
 
 				await interaction.showModal(customModal);
 				await awaitModal(
@@ -833,11 +674,9 @@ module.exports = {
 							components: actionRows,
 							message,
 						} = _interaction;
-						// let { questions, outputChannel } = JSON.parse(
-						// 	message.embeds[0].footer.text
-						// );
-						var questions = object.questions
-						const outputChannel = object.outputChannel;
+						let { questions, outputChannel } = JSON.parse(
+							message.embeds[0].footer.text
+						);
 
 						var embedFields = [];
 
@@ -846,10 +685,7 @@ module.exports = {
 							const question = questions[i];
 							const userAnswer = components.getTextInputValue(`no_${i}`);
 
-							embedFields.push({
-								name: question,
-								value: `*${userAnswer.trim()}*`,
-							});
+							embedFields.push({ name: question, value: `*${userAnswer}*` });
 						}
 
 						const answerEmbed = new EmbedBuilder()
@@ -880,20 +716,6 @@ module.exports = {
 							});
 					}
 				);
-			} else if (name === "report_error") {
-				let reportChannel = client.channels.cache.get("990135799662145567");
-				let error = message.embeds[0].description;
-
-				reportChannel.send({
-					content: `${emojis.cross} ${interaction.user.tag} :\n\n${error}`,
-				});
-
-				await toggleButton(interaction);
-
-				await interaction.reply({
-					content: `${emojis.check}`,
-					ephemeral: true,
-				});
 			} else {
 				interaction.reply({
 					embeds: [error(translate("error.unknown", interaction.guild))],
@@ -962,60 +784,37 @@ module.exports = {
 						message.reference.messageId
 					);
 
-					await interaction.deferReply();
+					if (modalMsg.type === MessageType.ChatInputCommand) {
+						await interaction.deferReply();
 
-					modalMsg.embeds[0].fields[modalMsg.modalEdit] = {
-						name: components.getTextInputValue("qst"),
-						value: `*${components.getTextInputValue("ph")}*`,
-						inline: false,
-					};
+						modalMsg.embeds[0].fields[modalMsg.modalEdit] = {
+							name: components.getTextInputValue("qst"),
+							value: `*${components.getTextInputValue("ph")}*`,
+							inline: false,
+						};
 
-					const modalEmbed = new EmbedBuilder();
-					modalEmbed.data = modalMsg.embeds[0].data;
+						const modalEmbed = new EmbedBuilder();
+						modalEmbed.data = modalMsg.embeds[0].data;
 
-					modalEmbed.setFields(modalMsg.embeds[0].fields);
-					await modalMsg.edit({
-						embeds: [modalEmbed],
-						content: modalMsg.content,
-					});
-					await message.delete();
+						modalEmbed.setFields(modalMsg.embeds[0].fields);
+						await modalMsg.edit({
+							embeds: [modalEmbed],
+							content: modalMsg.content,
+						});
+						await message.delete();
 
-					await interaction.deleteReply();
+						await interaction.deleteReply();
+					} else {
+						throw new TypeError(
+							"Message isn't Discord.MessageType.ChatInputCommand"
+						);
+					}
 				}
 			}
+			//interaction.reply("Hein ?");
 		}
 	},
 };
-
-/**
- * It takes a field object and returns an array of two ActionRow objects
- * @param field - The field to be edited
- * @param guild - The guild
- * @returns An array of ActionRowBuilder objects.
- */
-function fieldToRows(field, guild) {
-	const qstInput = new TextInputBuilder()
-		.setCustomId("qst")
-		.setLabel(translate("add.modal.question", guild))
-		.setStyle(TextInputStyle.Short)
-		.setMaxLength(45)
-		.setRequired(true)
-		.setValue(field.name);
-
-	const phInput = new TextInputBuilder()
-		.setCustomId("ph")
-		.setLabel(translate("add.modal.placeholder", guild))
-		.setStyle(TextInputStyle.Short)
-		.setMaxLength(100)
-		// .setPlaceholder(`Comme celui que vous lisez actuellement`)
-		.setRequired(true)
-		.setValue(field.value.substring(1, field.value.length - 1));
-
-	const newQstAr = new ActionRowBuilder().addComponents([qstInput]);
-	const phAr = new ActionRowBuilder().addComponents([phInput]);
-
-	return [newQstAr, phAr];
-}
 
 /**
  * Creates buttons for Modal Creator
@@ -1058,29 +857,6 @@ function modalComponent(hasQuestion = false, interaction) {
 				.setCustomId("cm_dlt")
 				.setDisabled(false),
 		]),
-		new ActionRowBuilder().setComponents([
-			new SelectMenuBuilder()
-				.setPlaceholder(translate("select.modal.change", interaction.guild))
-				.setCustomId("cm_chng")
-				.setDisabled(!hasQuestion)
-				.setMaxValues(1)
-				.setMinValues(1)
-				.setOptions([
-					{
-						label: translate("select.modal.maxChar", interaction.guild),
-						description: translate(
-							"select.modal.defaultMax",
-							interaction.guild
-						),
-						value: "cm_maxChar",
-						emoji: {
-							id: "975168639407910922",
-							name: "edit",
-							animated: false,
-						},
-					},
-				]),
-		]),
 	];
 }
 
@@ -1090,11 +866,10 @@ function modalComponent(hasQuestion = false, interaction) {
  * @param {Embed} modalEmbed - The embed that you want to convert
  * @param {Guild} guild - The guild object
  * @param {ClientUser} user - The bot client to use for the author of the embed and description.
- * @param {TextChannel} output - The output channel the modal answers will be sent in
- * @param {boolean} embed - Returns EmbedBuilder object or just Stringified JSON object
- * @returns {Object|EmbedBuilder} An embed builder object or a object with properties.
+ * @param {TextChannel} output - The channel the output will be sent in
+ * @returns {EmbedBuilder} An embed builder object.
  */
-function compactModalEmbed(modalEmbed, guild, user, output, embed = true) {
+function compactModalEmbed(modalEmbed, guild, user, output) {
 	const modalTitle = modalEmbed.author.name;
 	const qAndAs = modalEmbed.fields;
 	var questions = [];
@@ -1113,23 +888,11 @@ function compactModalEmbed(modalEmbed, guild, user, output, embed = true) {
 		placeholders,
 	});
 
-	if (embed === true) {
-		return new EmbedBuilder()
+	return new EmbedBuilder()
 		.setAuthor({ name: modalTitle, iconURL: user.displayAvatarURL() })
 		.setDescription(translate("finish.modal.description", guild, user))
 		.setColor("#2f3136")
 		.setFooter({ text: objectString });
-	} else {
-		return {
-			modal: objectString,
-			embed: new EmbedBuilder()
-			.setAuthor({ name: modalTitle, iconURL: user.displayAvatarURL() })
-			.setDescription(translate("finish.modal.description", guild, user))
-			.setColor("#2f3136")
-		}
-	}
-
-	
 }
 
 /**
@@ -1289,13 +1052,3 @@ function edtBtn() {
 // 		}
 // 	}
 // }
-
-/**
- * Clamp a number between a minimum and maximum value.
- * @param {Number} num - The number to clamp.
- * @param {Number} min - The minimum value the number can be.
- * @param {Number} max - The maximum value the number can be.
- */
-function clamp(num, min, max) {
-	return Math.min(Math.max(num, min), max);
-}

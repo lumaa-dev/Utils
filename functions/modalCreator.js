@@ -1,17 +1,16 @@
 const {
-	SelectMenuBuilder,
-	ActionRowBuilder,
-	TextInputBuilder,
-	TextInputStyle,
-	ButtonBuilder,
 	EmbedBuilder,
+	ActionRowBuilder,
 	ModalBuilder,
-	TextChannel,
 	GuildMember,
+	ButtonBuilder,
 	ButtonStyle,
-	Client,
+	TextInputStyle,
+	TextInputBuilder,
 	Guild,
 	Embed,
+	Client,
+	TextChannel,
 } = require("discord.js");
 
 class ModalCreator {
@@ -24,14 +23,6 @@ class ModalCreator {
 		/** @type {Client} */
 		this.client = client;
 
-		this.data = {
-			title: null,
-			questions: [],
-			placeholders: [],
-			maxChars: [],
-			modalEmbed: undefined,
-			characterEmbed: undefined,
-		};
 		this.builder = { embeds: [], components: [] };
 		this.channels = { embed: null, output: null };
 
@@ -44,15 +35,13 @@ class ModalCreator {
 	 * @param {String} title The title of the Modal
 	 * @param {Array<String>} questions The questions of the Modal
 	 * @param {Array<String>} placeholders The placeholders of the Modal
-	 * @param {Array<Number>} maxChars The count of each text input's max characters of the Modal
 	 * @returns {ModalCreator.builder}
 	 */
-	build(creator, title, questions = [], placeholders = [], maxChars = []) {
+	build(creator, title, questions = [], placeholders = []) {
 		if (questions.length !== placeholders.length)
 			throw new RangeError(
 				"Questions array and Placeholders array are not the same length"
 			);
-		this.data = { title, questions, placeholders, maxChars };
 		var fields = [];
 
 		for (let i = 0; i < questions.length; i++) {
@@ -73,36 +62,8 @@ class ModalCreator {
 				iconURL: creator.user.displayAvatarURL(),
 			});
 
-		this.data.modalEmbed = embed;
-
-		embed = new EmbedBuilder()
-			.setTitle(translate("modal.characters.title", creator.guild))
-			.setColor("Blurple");
-
-		if (maxChars.every((currentValue) => currentValue === 100)) {
-			embed.setDescription(
-				`*${translate("modal.characters.same", creator.guild, 100)}*`
-			);
-		} else if (maxChars.length > 0) {
-			var description = embed.data.description;
-			var i = 0;
-			maxChars.forEach((char) => {
-				i = i++;
-				description += `\n${i} - ${translate(
-					"modal.characters.single",
-					creator.guild,
-					char
-				)}`;
-				embed.setDescription(description);
-			});
-		} else {
-			embed.setDescription(translate("nothing", creator.guild));
-		}
-
-		this.data.characterEmbed = embed;
-
 		this.builder = {
-			embeds: [this.data.modalEmbed, this.data.characterEmbed],
+			embeds: [embed],
 			components: this.modalComponent(questions.length > 0, creator.guild),
 		};
 		return this.builder;
@@ -112,31 +73,10 @@ class ModalCreator {
 	 * It creates a new Modal Creator from a Modal Creator
 	 * @param {Client} client
 	 * @param {Embed} modalEmbed - The Modal Creator Embed
-	 * @param {Embed} charsEmbed - The Modal Creator Embed
 	 * @param {Guild} guild - The guild the Modal Creator has been sent in.
 	 * @return {ModalCreator.builder}
 	 */
-	reuse(client, modalEmbed, charsEmbed, guild) {
-		//const maxChars = JSON.parse(modalEmbed.footer.text).maxChars ?? [];
-		var questions = [];
-		var placeholders = [];
-
-		for (let i = 0; i < modalEmbed.fields.length; i++) {
-			const field = modalEmbed.fields[i];
-			questions.push(field.name.trim());
-			placeholders.push(
-				field.value.substring(1, field.value.length - 1).trim()
-			);
-		}
-
-		this.data = {
-			title: modalEmbed.author.text,
-			questions: questions,
-			placeholders: placeholders,
-			maxChars: maxChars,
-			modalEmbed: modalEmbed,
-			characterEmbed: characterEmbed,
-		};
+	reuse(client, modalEmbed, guild) {
 		this.client = client;
 		this.builder = {
 			embeds: [modalEmbed],
@@ -145,47 +85,14 @@ class ModalCreator {
 		return this.builder;
 	}
 
-	/**
-	 * It creates a select menu with the options being the fields of the embed
-	 * @return {SelectMenuBuilder} Select menu with the questions of the embed
-	 */
-	select() {
-		/**@type {EmbedBuilder} */
-		const embed = this.builder.embeds[0];
-
-		let selectMenu = new SelectMenuBuilder()
-			.setCustomId("edt_qst")
-			.setMaxValues(1)
-			.setMinValues(1)
-			.setDisabled(false);
-
-		var options = [];
-
-		for (let i = 0; i < embed.data.fields.length; i++) {
-			const field = embed.data.fields[i];
-			options.push({
-				value: `qst_${i}`,
-				description: field.value.substring(1, field.value.length - 1),
-				label: field.name,
-			});
-		}
-
-		selectMenu.setOptions(options);
-
-		return selectMenu;
-	}
-
-	/**
-	 * @deprecated Not working yet
-	 */
+	/**@deprecated */
 	convert(openModalEmbed) {
-		//const object = JSON.parse(openModalEmbed.footer.text);
+		const object = JSON.parse(openModalEmbed.footer.text);
 	}
 
 	/**
 	 * Creates buttons for Modal Creator
 	 * @param {Boolean} hasQuestion If the Modal Creator has at least one question
-	 * @param {Guild} guild
 	 * @returns {Array<ActionRowBuilder>}
 	 */
 	modalComponent(hasQuestion = false, guild) {
@@ -223,26 +130,6 @@ class ModalCreator {
 					.setLabel(translate("button.modal.cancel", guild))
 					.setCustomId("cm_dlt")
 					.setDisabled(false),
-			]),
-			new ActionRowBuilder().setComponents([
-				new SelectMenuBuilder()
-					.setPlaceholder(translate("select.modal.change", guild))
-					.setCustomId("cm_chng")
-					.setDisabled(!hasQuestion)
-					.setMaxValues(1)
-					.setMinValues(1)
-					.setOptions([
-						{
-							label: translate("select.modal.maxChar", guild),
-							description: translate("select.modal.defaultMax", guild),
-							value: "cm_maxChar",
-							emoji: {
-								id: "975168639407910922",
-								name: "edit",
-								animated: false,
-							},
-						},
-					]),
 			]),
 		];
 	}
@@ -396,15 +283,6 @@ class ModalCreator {
 			components: [new ActionRowBuilder().setComponents([openBtn])],
 		});
 	}
-
-	changeAnswerChars(identifier, newCount = 100, isIndex = true) {
-		if (isIndex === true) {
-			this.data.maxChars[identifier] = newCount;
-		} else {
-			let i = this.data.maxChars.indexOf(identifier);
-			this.data.maxChars[i] = newCount;
-		}
-	}
 }
 
 module.exports = ModalCreator;
@@ -452,8 +330,7 @@ function translate(translation, guild, var1) {
 				console.log(`lang.fr['${translation}'] > ${str}`);
 		} else {
 			str = eval(`lang.en['${translation}']`);
-			if (config.log === true)
-				console.log(`lang.en['${translation}'] > ${str}`);
+			if (config.log === true) console.log(`lang.en'${translation}'] > ${str}`);
 		}
 
 		return eval(`\`${str}\``);

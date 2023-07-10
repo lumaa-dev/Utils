@@ -1,91 +1,9 @@
 const Discord = require("discord.js");
-const { translate, seperator } = require("../../main");
-const { lang, emojis, modalPrefabs } = require(".././config.json").utils;
+const { translate } = require("../../main");
+// cont { joinVoiceChannel, createAudioPlayer } = require("@discordjs/voice");
+// const ytSearch = require("yt-search");s
 const config = require("../config.json");
 const { randomColor } = require("./embeds");
-const ModalCreator = require("../modalCreator");
-const fs = require("fs")
-
-class Data {
-	constructor(filePath, requireable = false) {
-		this.filePath = filePath;
-		this.content = null;
-		if (requireable) this.content = require(filePath);
-	}
-
-
-	/**
-	 * The function takes a modal object as a parameter and saves it.
-	 * @param {ModalCreator} modalCreator - The modal object that is being saved.
-	 * @param {Boolean} newFile New file or not
-	 */
-	saveModal(modalCreator) {
-		let { data: modal } = modalCreator;
-		/**@type {Discord.TextChannel} */
-		const outputChannel = modalCreator.channels.output;
-
-		if (hasFile(this.filePath, outputChannel.guild)) {
-			const json = {
-				title: modal.title,
-				questions: modal.questions,
-				placeholders: modal.placeholders,
-				maxChars: modal.maxChars,
-				outputChannel: outputChannel.id
-			}
-			const serverPath = `${this.filePath}${seperator}${outputChannel.guild.id}.json`;
-
-			const parsed = JSON.parse(fs.readFileSync(serverPath));
-			parsed.push(json);
-			fs.writeFileSync(serverPath, JSON.stringify(parsed))
-			// saved :D
-			return;
-		} else {
-			const json = [{
-				title: modal.title,
-				questions: modal.questions,
-				placeholders: modal.placeholders,
-				maxChars: modal.maxChars,
-				outputChannel: outputChannel.id
-			}]
-
-			const stringified = JSON.stringify(json);
-			fs.writeFileSync(`${this.filePath}${seperator}${outputChannel.guild.id}.json`, stringified)
-			// saved :D
-			return;
-
-		}
-
-		/**
-		 * @param {Data} fileData
-		 * @param {Guild} guild
-		 */
-		function hasFile(fileData, guild) {
-			let filePath = `${fileData.filePath}${seperator}${guild.id}.json`;
-			return fs.existsSync(filePath);
-		}
-	}
-}
-
-/**
- * DataType
- * @param {"server"|"user"} type 
- * @returns Data class
- */
-const dt = function (type) {
-	switch (type) {
-		case "server":
-			return new Data("../../data/server", true)
-	
-		case "user": 
-			throw new Error("No user data yet.")
-
-		default:
-			return new Data("../../data/server", true) // default
-	}
-}
-
-module.exports.Data = Data;
-module.exports.DataType = dt;
 module.exports = {
 	regexs() {
 		return {

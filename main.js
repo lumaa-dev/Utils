@@ -2,13 +2,8 @@ const Discord = require("discord.js");
 const config = require("./functions/config.json");
 const Func = require("./functions/all");
 const { setStatus } = require("./functions/js/client");
-
-const reportBtn = new Discord.ActionRowBuilder().setComponents([
-	new Discord.ButtonBuilder()
-		.setStyle(Discord.ButtonStyle.Danger)
-		.setCustomId("report_error")
-		.setLabel("error.report.button"),
-]);
+const ModalCreator = require("./functions/modalCreator");
+ModalCreator;
 
 const client = new Discord.Client({
 	intents: [
@@ -20,23 +15,10 @@ const client = new Discord.Client({
 		Discord.IntentsBitField.Flags.GuildIntegrations,
 	],
 });
-client.once("ready", async () => {
-	await connectMongo().then(mangoose => {
-		try {
-			console.log("MangoDB connected")
-		} finally {
-			mangoose.connection.close()
-		}
-	})
 
-	await setStatus(
-		client,
-		"online",
-		"lumaa.brebond.com",
-		Discord.ActivityType.Watching
-	);
-	
+client.once("ready", () => {
 	console.log(`${client.user.tag} is logged`);
+	setStatus(client, "online", "la version 2", Discord.ActivityType.Watching);
 });
 
 client.on("messageCreate", async (message) => {
@@ -52,26 +34,16 @@ client.on("interactionCreate", async (interaction) => {
 			await require("./commands/" + name).execute(interaction, client);
 		} catch (e) {
 			console.error(e);
-
-			let button = reportBtn.components[0];
-			button.setLabel(translate("error.report.button", interaction.guild));
-			reportBtn.setComponents([button]);
-
-			if (interaction.replied !== true && interaction.deferred === false) {
+			if (interaction.replied !== true) {
 				await interaction.reply({
-					embeds: [errorCode(e, interaction.guild)],
-					components: [reportBtn],
+					embeds: [errorCode(e)],
 				});
 			} else if (
-				interaction.deferred === true ||
-				interaction.replied === true
+				interaction.deferred === true &&
+				interaction.replied === false
 			) {
 				await interaction.editReply({
-					content: "\n",
-					attachments: [],
-					files: [],
-					embeds: [errorCode(e, interaction.guild)],
-					components: [reportBtn],
+					embeds: [errorCode(e)],
 				});
 			}
 		}
@@ -88,23 +60,16 @@ client.on("interactionCreate", async (interaction) => {
 			await require("./events/interactionCreate").execute(interaction, client);
 		} catch (e) {
 			console.error(e);
-
-			let button = reportBtn.components[0];
-			button.setLabel(translate("error.report.button", interaction.guild));
-			reportBtn.setComponents([button]);
-
 			if (interaction.replied !== true) {
 				await interaction.reply({
-					embeds: [errorCode(e, interaction.guild)],
-					components: [reportBtn],
+					embeds: [errorCode(e)],
 				});
 			} else if (
 				interaction.deferred === true &&
 				interaction.replied === false
 			) {
 				await interaction.editReply({
-					embeds: [errorCode(e, interaction.guild)],
-					components: [reportBtn],
+					embeds: [errorCode(e)],
 				});
 			}
 		}
@@ -117,13 +82,12 @@ client.on("rateLimit", (detail) => {
 
 /**
  * It returns a Discord.EmbedBuilder object with a title and description
- * @param {String} e - The error message.
- * @param {Discord.Guild} guild - The guild the error occured
+ * @param {String} e [e=Inconnue] - The error message.
  * @returns {Discord.EmbedBuilder} A Discord.EmbedBuilder object.
  */
-function errorCode(e = translate("error.unknown", guild), guild) {
+function errorCode(e = "Inconnue") {
 	return new Discord.EmbedBuilder()
-		.setTitle(translate("error.title", guild))
+		.setTitle("Erreur à signaler :")
 		.setDescription(`\`\`\`js\n${e}\`\`\``)
 		.setColor("Red");
 }
@@ -155,7 +119,7 @@ function succeed(message) {
  * @param {String} message The message to send.
  * @returns {Discord.EmbedBuilder} A Discord.EmbedBuilder object.
  */
-function loading(message) {
+function loading(message = translate("loading")) {
 	return new Discord.EmbedBuilder()
 		.setDescription(`<a:loading:902218385369223178> ${message}`)
 		.setColor("Blurple");
@@ -169,29 +133,11 @@ function loading(message) {
  * @returns {String} Translated string
  */
 function translate(translation, guild, var1) {
-	var lang = null;
+	const { lang } = require("./functions/config.json").utils;
 	var str = null;
 
-	connectMongo().then(async mangoose => {
-		if (!cache[interaction.guild.id]) {
-			try {
-				const result = await langSchema.findOne({ _id: guild.id })
-				lang = result;
-			} finally {
-				mangoose.connection.close()
-			}
-		} else {
-			lang = cache[guild.id].lang
-		}
-	})
-
-	console.log(lang)
-	if (lang !== null) {
-		lang = require("./functions/config.json").utils.lang;
-	}
-
 	try {
-		if (lang === "fr") {
+		if (guild.preferredLocale === "fr") {
 			str = eval(`lang.fr['${translation}']`);
 			if (config.log === true)
 				console.log(`lang.fr['${translation}'] > ${str}`);
@@ -208,19 +154,6 @@ function translate(translation, guild, var1) {
 	}
 }
 
-function sep() {
-	if (__dirname.includes("/")) return "/" // linux
-	return "\\"
-}
+module.exports = { errorCode, error, succeed, loading, translate };
 
-module.exports = {
-	errorCode,
-	error,
-	succeed,
-	loading,
-	translate,
-	/**@type {"/"|"\\"} */
-	seperator: sep()
-};
-
-client.login(config.test ? require("./functions/token.json").testbot_token : require("./functions/token.json").token);
+client.login(config.test ? config.testbot_token : config.token);

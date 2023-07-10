@@ -1,6 +1,7 @@
+const Discord = require("discord.js")
 const { awaitMessage } = require("../functions/js/cmds");
-const Discord = require("discord.js");
-const wait = require("util").promisify(setTimeout);
+const wait = require('util').promisify(setTimeout);
+
 
 module.exports = {
 	data: {
@@ -109,8 +110,8 @@ module.exports = {
 						.setMinValues(1)
 						.setMaxValues(1)
 						.setPlaceholder("Créez un ticket")
-						.setOptions(menuOptions),
-				]),
+						.setOptions(menuOptions)]
+				),
 			],
 		});
 

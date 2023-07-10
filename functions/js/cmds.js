@@ -106,7 +106,7 @@ module.exports = {
 	 * @param {Discord.Message} message
 	 * @param {Boolean} hasCustomData If the command file(s) has the customData object
 	 */
-	 async initiate(client, message, hasCustomData = true) {
+	async initiate(client, message, hasCustomData = true) {
 		checkConfig();
 		if (
 			message.author.id === config.ownerId &&
@@ -124,31 +124,31 @@ module.exports = {
 				console.log(`/${rfile.data.name}`);
 			});
 
-			await client.guilds.cache.get(message.guild.id)?.commands.set(convert(a));
-			await client.guilds.cache
-				.get(message.guild.id)
-				?.commands?.cache.each(async (cmd) => {
-					if (cmd.description === "Dev") {
-						// const all = {
-						// 	id: message.guild.roles.everyone.id,
-						// 	type: "ROLE",
-						// 	permission: false,
-						// };
-						// const owner = {
-						// 	id: config.ownerId,
-						// 	type: "USER",
-						// 	permission: true,
-						// };
+			await client.guilds.cache.get(message.guild.id)?.commands.set(a);
+			// await client.guilds.cache
+			// 	.get(message.guild.id)
+			// 	?.commands?.cache.each(async (cmd) => {
+			// 		if (cmd.description === "Dev") {
+			// 			// const all = {
+			// 			// 	id: message.guild.roles.everyone.id,
+			// 			// 	type: "ROLE",
+			// 			// 	permission: false,
+			// 			// };
+			// 			// const owner = {
+			// 			// 	id: config.ownerId,
+			// 			// 	type: "USER",
+			// 			// 	permission: true,
+			// 			// };
 
-						// await cmd.permissions.set({
-						// 	command: cmd.id,
-						// 	permissions: [owner, all],
-						// });
-						console.log("dev command");
-					} else {
-						console.log("global command");
-					}
-				});
+			// 			// await cmd.permissions.set({
+			// 			// 	command: cmd.id,
+			// 			// 	permissions: [owner, all],
+			// 			// });
+			// 			console.log("dev command");
+			// 		} else {
+			// 			console.log("global command");
+			// 		}
+			// 	});
 			console.log("Initialized all commands");
 			message.react({
 				animated: false,
@@ -281,7 +281,7 @@ module.exports = {
 
 	/**
 	 * Waits for an modal in a interaction
-	 * @param {Discord.Interaction} interaction The interaction
+	 * @param {Discord.ButtonInteraction} interaction The interaction
 	 * @param {Discord.User} user The user that will respond
 	 * @param {Function} succeed The function when it will succeed
 	 * @param {Function} error The function when it will get an error
@@ -379,27 +379,5 @@ module.exports = {
 			return cmdsArray;
 		}
 		throw new Error("No options set in allCmds");
-	},
-
-	/**
-	 * It disables a button in a message
-	 * @param {Discord.ButtonInteraction} interaction - The interaction object.
-	 */
-	async toggleButton(interaction) {
-		let { message, customId: name } = interaction;
-
-		message.components.forEach(
-			(/**@type {import("discord.js").ActionRowBuilder}*/ actionrows) => {
-				actionrows.components.forEach((component) => {
-					if (component.data.custom_id === name) {
-						component.data.disabled = true;
-					}
-				});
-			}
-		);
-
-		await message.edit({
-			components: message.components,
-		});
 	},
 };
