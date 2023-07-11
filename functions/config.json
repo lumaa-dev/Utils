@@ -5,7 +5,6 @@
     "devPrefix": "u<>",
     "version": "Dev2.1",
     "utils": {
-        "mongoPath": "mongodb://localhost:27017/utils",
         "lang": {
             "fr": {
                 "discord.tos": "Demander les données d'un utilisateur est contre les règles de Discord",
@@ -158,39 +157,19 @@
         "modalPrefabs": [
             {
                 "label": "prefab.modal.apply",
-                "value": "prefabModal_apply",
-                "emoji": {
-                    "id": "977607026991595641",
-                    "name": "paper",
-                    "animated": false
-                }
+                "value": "prefabModal_apply"
             },
             {
                 "label": "prefab.modal.roleplay",
-                "value": "prefabModal_roleplay",
-                "emoji": {
-                    "id": "977609229047316490",
-                    "name": "roles",
-                    "animated": false
-                }
+                "value": "prefabModal_roleplay"
             },
             {
                 "label": "prefab.modal.report",
-                "value": "prefabModal_report",
-                "emoji": {
-                    "id": "973972320194531379",
-                    "name": "warn",
-                    "animated": false
-                }
+                "value": "prefabModal_report"
             },
             {
                 "label": "prefab.modal.custom",
-                "value": "prefabModal_custom",
-                "emoji": {
-                    "id": "975168639407910922",
-                    "name": "edit",
-                    "animated": false
-                }
+                "value": "prefabModal_custom"
             }
         ]
     }
