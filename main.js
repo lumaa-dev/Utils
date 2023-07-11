@@ -3,7 +3,6 @@ const config = require("./functions/config.json");
 const Func = require("./functions/all");
 const { setStatus } = require("./functions/js/client");
 const ModalCreator = require("./functions/modalCreator");
-ModalCreator;
 
 const client = new Discord.Client({
 	intents: [
