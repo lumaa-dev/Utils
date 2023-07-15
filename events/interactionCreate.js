@@ -116,9 +116,10 @@ module.exports = {
 				);
 
 				if (value.split("_")[1] == "other") {
-					// await interaction.reply({
-					// 	content: `${interaction.user.tag} a ouvert un ticket pour \`Autre\`.`,
-					// });
+					await interaction.reply({
+						content: `Regardez les fils de ce salon, l'un d'eux devrait vous avoir mentionné.`,
+						ephemeral: true
+					});
 					const threadStart = interaction.channel.lastMessage;
 					const thread = await threads.create({
 						name: `Autre - ${interaction.user.id}`,
