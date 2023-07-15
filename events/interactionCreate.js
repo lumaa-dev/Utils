@@ -9,7 +9,6 @@ const {
 	TextInputBuilder,
 	TextInputStyle,
 	SelectMenuBuilder,
-	MessageType,
 	Collection,
 	GuildMember,
 	Embed,
@@ -27,7 +26,7 @@ const {
 	awaitInteraction,
 	awaitModal,
 } = require("../functions/js/cmds");
-const ModalCreator = require("../functions/modalCreator");
+const { correctEpoch } = require("../functions/js/other");
 const { succeed, error, loading, translate } = require("../main");
 
 module.exports = {
@@ -37,7 +36,7 @@ module.exports = {
 	 * @returns {Any}
 	 */
 	async execute(interaction, client = null) {
-		if (interaction.isSelectMenu()) {
+		if (interaction.isStringSelectMenu()) {
 			let { customId: name, values, message } = interaction;
 
 			if (name.startsWith("setRoles")) {
@@ -117,30 +116,30 @@ module.exports = {
 				);
 
 				if (value.split("_")[1] == "other") {
-					await interaction.reply({
-						content: `${interaction.user.tag} a ouvert un ticket pour \`Autre\`.`,
-					});
+					// await interaction.reply({
+					// 	content: `${interaction.user.tag} a ouvert un ticket pour \`Autre\`.`,
+					// });
 					const threadStart = interaction.channel.lastMessage;
 					const thread = await threads.create({
 						name: `Autre - ${interaction.user.id}`,
 						reason: `Ticket Autre`,
 						startMessage: threadStart,
-						type: ChannelType.GuildPublicThread,
+						type: ChannelType.PrivateThread,
 					});
 
 					var mainMessage = await thread.send({
-						content: `<@${interaction.user.id}>, Veuillez donner une courte description à votre création de ticket.`,
+						content: `<@${interaction.user.id}>, Veuillez donner un titre à ce ticket.`,
 					});
 
 					await awaitMessage(thread, interaction.user, async (collected) => {
 						const message = collected.first();
-						const content = message.content.slice(0, 79);
+						const content = message.content.slice(0, 50);
 
 						message.delete();
-						await thread.edit({ name: `${content} - ${interaction.user.id}` });
-						await interaction.editReply({
-							content: `${interaction.user.tag} a ouvert un ticket pour \`${content}\`.`,
-						});
+						await thread.edit({ name: `${content} - ${Math.floor(Math.random() * 10**10)}` });
+						// await interaction.editReply({
+						// 	content: `${interaction.user.tag} a ouvert un ticket pour \`${content}\`.`,
+						// });
 					});
 
 					await mainMessage.edit({
@@ -149,19 +148,19 @@ module.exports = {
 						components: [components],
 					});
 				} else {
-					await interaction.reply({
-						content: `${interaction.user.tag} a ouvert un ticket pour \`${ticket.label}\`.`,
-					});
+					// await interaction.reply({
+					// 	content: `${interaction.user.tag} a ouvert un ticket pour \`${ticket.label}\`.`,
+					// });
 					const threadStart = interaction.channel.lastMessage;
 					const thread = await threads.create({
-						name: `${ticket.label} - ${interaction.user.id}`,
+						name: `${ticket.label} - ${Math.floor(Math.random() * 10**10)}`,
 						reason: `Ticket ${ticket.label}`,
 						startMessage: threadStart,
-						type: ChannelType.GuildPublicThread,
+						type: ChannelType.PrivateThread,
 					});
 
 					await thread.send({
-						content: `<@${interaction.user.id}>, Veuillez détailler la raison de ce ticket ci-dessous.\nLorsque ce ticket n'est plus actif, appuyez sur le bouton \`Couper le ticket\`.`,
+						content: `<@${interaction.user.id}>, Veuillez détailler la raison de ce ticket ci-dessous et pingez les personnes si nécessaires.\nLorsque ce ticket n'est plus actif, appuyez sur le bouton \`Couper le ticket\`.`,
 						components: [components],
 					});
 				}
@@ -171,7 +170,7 @@ module.exports = {
 
 			if (name === "acceptNick" || name === "denyNick") {
 				if (
-					interaction.member.permissions.has([
+					!interaction.member.permissions.has([
 						"MANAGE_NICKNAMES",
 						"CHANGE_NICKNAME",
 					])
@@ -280,7 +279,7 @@ module.exports = {
 					});
 				}
 			} else if (name === "cutTicket") {
-				if (interaction.channel.type === ChannelType.GuildPublicThread) {
+				if (interaction.channel.type === ChannelType.PrivateThread) {
 					await interaction.deferReply({ ephemeral: true });
 
 					await interaction.channel.send({
@@ -565,7 +564,7 @@ module.exports = {
 									String(_message.content.match(/<#\d+>/g)[0]).match(/\d+/g)[0]
 								);
 
-								if (!modalChannel.isText())
+								if (!modalChannel.isTextBased())
 									throw new Error("error.insertVoice");
 
 								await modalChannel.sendTyping();
@@ -577,9 +576,10 @@ module.exports = {
 							}
 						},
 						(e) => {
-							return mainChannel.send({
-								embeds: [error(translate(e, _message.guild))],
-							});
+							console.error(e)
+							// return mainChannel.send({
+							// 	embeds: [error(translate(e, collected.first().guild))],
+							// });
 						}
 					);
 
@@ -605,7 +605,7 @@ module.exports = {
 									String(_message.content.match(/<#\d+>/g)[0]).match(/\d+/g)[0]
 								);
 
-								if (!outputChannel.isText())
+								if (!outputChannel.isTextBased())
 									throw new Error("error.insertVoice");
 
 								await _message.delete();
@@ -616,12 +616,12 @@ module.exports = {
 						},
 						(e) => {
 							return mainChannel.send({
-								embeds: [error(translate(e, _message.guild))],
+								embeds: [error(e)],
 							});
 						}
 					);
 
-					if (modalChannel.isText()) {
+					if (modalChannel.isTextBased()) {
 						await modalChannel.send({
 							embeds: [
 								compactModalEmbed(
@@ -638,12 +638,7 @@ module.exports = {
 											translate("button.modal.open", outputChannel.guild)
 										)
 										.setCustomId("openModal")
-										.setStyle(ButtonStyle.Secondary)
-										.setEmoji({
-											id: "977607026991595641",
-											name: "paper",
-											animated: false,
-										}),
+										.setStyle(ButtonStyle.Secondary),
 								]),
 							],
 						});
@@ -669,7 +664,7 @@ module.exports = {
 					interaction.user,
 					async (/** @type {ModalSubmitInteraction} */ _interaction) => {
 						let {
-							customId: name,
+							// customId: name,
 							fields: components,
 							components: actionRows,
 							message,
@@ -784,7 +779,7 @@ module.exports = {
 						message.reference.messageId
 					);
 
-					if (modalMsg.type === MessageType.ChatInputCommand) {
+					if (modalMsg.embeds[0]) {
 						await interaction.deferReply();
 
 						modalMsg.embeds[0].fields[modalMsg.modalEdit] = {
@@ -806,12 +801,11 @@ module.exports = {
 						await interaction.deleteReply();
 					} else {
 						throw new TypeError(
-							"Message isn't Discord.MessageType.ChatInputCommand"
+							"Reply isn't Discord.MessageType.ChatInputCommand"
 						);
 					}
 				}
 			}
-			//interaction.reply("Hein ?");
 		}
 	},
 };
@@ -838,11 +832,6 @@ function modalComponent(hasQuestion = false, interaction) {
 		]),
 		new ActionRowBuilder().setComponents([
 			new ButtonBuilder()
-				.setEmoji({
-					name: "check",
-					id: "973972321436065802",
-					animated: false,
-				})
 				.setLabel(translate("button.modal.finish", interaction.guild))
 				.setCustomId("cm_done")
 				.setStyle(ButtonStyle.Primary)
@@ -1016,27 +1005,15 @@ function toggleRole(member, role) {
 }
 
 function addBtn() {
-	return new ButtonBuilder().setStyle(ButtonStyle.Success).setEmoji({
-		name: "plus",
-		id: "975163068411695104",
-		animated: false,
-	});
+	return new ButtonBuilder().setStyle(ButtonStyle.Success)
 }
 
 function rmvBtn() {
-	return new ButtonBuilder().setStyle(ButtonStyle.Danger).setEmoji({
-		name: "minus",
-		id: "975163067757396059",
-		animated: false,
-	});
+	return new ButtonBuilder().setStyle(ButtonStyle.Danger)
 }
 
 function edtBtn() {
-	return new ButtonBuilder().setStyle(ButtonStyle.Secondary).setEmoji({
-		name: "edit",
-		id: "975168639407910922",
-		animated: false,
-	});
+	return new ButtonBuilder().setStyle(ButtonStyle.Secondary)
 }
 
 // function modalToEmbed(modalInteraction) {
