@@ -112,11 +112,6 @@ class ModalCreator {
 			]),
 			new ActionRowBuilder().setComponents([
 				new ButtonBuilder()
-					.setEmoji({
-						name: "check",
-						id: "973972321436065802",
-						animated: false,
-					})
 					.setLabel(translate("button.modal.finish", guild))
 					.setCustomId("cm_done")
 					.setStyle(ButtonStyle.Primary)
@@ -272,11 +267,6 @@ class ModalCreator {
 			.setLabel(translate("button.modal.open", outputChannel.guild))
 			.setCustomId("openModal")
 			.setStyle(ButtonStyle.Secondary)
-			.setEmoji({
-				id: "977607026991595641",
-				name: "paper",
-				animated: false,
-			});
 
 		await embedChannel.send({
 			embeds: [compactedEmbed],
@@ -288,27 +278,15 @@ class ModalCreator {
 module.exports = ModalCreator;
 
 function addBtn() {
-	return new ButtonBuilder().setStyle(ButtonStyle.Success).setEmoji({
-		name: "plus",
-		id: "975163068411695104",
-		animated: false,
-	});
+	return new ButtonBuilder().setStyle(ButtonStyle.Success)
 }
 
 function rmvBtn() {
-	return new ButtonBuilder().setStyle(ButtonStyle.Danger).setEmoji({
-		name: "minus",
-		id: "975163067757396059",
-		animated: false,
-	});
+	return new ButtonBuilder().setStyle(ButtonStyle.Danger)
 }
 
 function edtBtn() {
-	return new ButtonBuilder().setStyle(ButtonStyle.Secondary).setEmoji({
-		name: "edit",
-		id: "975168639407910922",
-		animated: false,
-	});
+	return new ButtonBuilder().setStyle(ButtonStyle.Secondary)
 }
 
 /**

@@ -4,9 +4,10 @@ const {
 	TextInputBuilder,
 	TextInputStyle,
 	PermissionFlagsBits,
-	SelectMenuBuilder,
 	EmbedBuilder,
 	ComponentType,
+	StringSelectMenuBuilder,
+	ChatInputCommandInteraction,
 } = require("discord.js");
 const { awaitInteraction } = require("../functions/js/cmds");
 const ModalCreator = require("../functions/modalCreator");
@@ -22,6 +23,12 @@ module.exports = {
 		usage: ["/modal"],
 		dev: false,
 	},
+	/**
+	 * 
+	 * @param {ChatInputCommandInteraction} interaction 
+	 * @param {*} client 
+	 * @returns 
+	 */
 	async execute(interaction, client = null) {
 		if (
 			!interaction.member.permissions.has([PermissionFlagsBits.ManageMessages])
@@ -37,7 +44,7 @@ module.exports = {
 			translated.push(prefab);
 		});
 
-		const selectPreset = new SelectMenuBuilder()
+		const selectPreset = new StringSelectMenuBuilder()
 			.setCustomId("modalPreset")
 			.setMinValues(1)
 			.setMaxValues(1)
@@ -61,7 +68,7 @@ module.exports = {
 		await awaitInteraction(
 			msg,
 			interaction.user,
-			ComponentType.SelectMenu,
+			ComponentType.StringSelect,
 			async (_interaction) => {
 				let { customId: name, message, values } = _interaction;
 

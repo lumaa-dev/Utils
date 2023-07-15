@@ -6,6 +6,7 @@ const {
 	ButtonBuilder,
 	ButtonStyle,
 	ComponentType,
+	StringSelectMenuBuilder,
 } = require("discord.js");
 const { awaitMessage } = require("../functions/js/cmds");
 
@@ -232,10 +233,10 @@ module.exports = {
 					// setupData.actualMenu = menu;
 					message.delete();
 					await setupData.roleMenuMsg.edit({
-						// content: `Séléctionnez des rôles ci-dessous :`,
+						content: `Séléctionnez des rôles ci-dessous :`,
 						components: [
 							new ActionRowBuilder().addComponents([
-								new SelectMenuBuilder()
+								new StringSelectMenuBuilder()
 									.setMinValues(1)
 									.setMaxValues(setupData.maxSelect)
 									.setCustomId(setupData.solo ? "setRoles_0" : "addRoles_0")

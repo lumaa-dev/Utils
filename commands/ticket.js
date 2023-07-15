@@ -34,7 +34,6 @@ module.exports = {
 						deny: [
 							Discord.PermissionFlagsBits.AddReactions,
 							Discord.PermissionFlagsBits.SendMessages,
-							Discord.PermissionFlagsBits.SendMessagesInThreads,
 							Discord.PermissionFlagsBits.CreatePublicThreads,
 							Discord.PermissionFlagsBits.CreatePrivateThreads,
 						],
@@ -121,7 +120,7 @@ module.exports = {
 
 		await interaction.deleteReply();
 		await interaction.channel.send({
-			content: "**Cool !** Votre créateur de ticket à été créé",
+			content: "**Cool !** Votre créateur de ticket à été créé.",
 		});
 	},
 };

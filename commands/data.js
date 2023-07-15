@@ -1,5 +1,6 @@
 const { CommandInteraction, Client } = require("discord.js");
 const { correctEpoch } = require("../functions/js/other");
+const { version } = require("../functions/config.json");
 
 module.exports = {
 	data: {
@@ -17,7 +18,7 @@ module.exports = {
 	 */
 	execute(interaction, client = null) {
 		return interaction.reply({
-			content: `Version: 2\nUptime: <t:${correctEpoch(
+			content: `Version: ${version}\nUptime: <t:${correctEpoch(
 				new Date().getTime() - Math.floor(process.uptime())
 			)}:F>\nServer Count (cache): ${client.guilds.cache.size}`,
 			ephemeral: true,

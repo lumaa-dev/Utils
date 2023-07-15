@@ -7,7 +7,7 @@ const ModalCreator = require("./functions/modalCreator");
 const client = new Discord.Client({
 	intents: [
 		Discord.IntentsBitField.Flags.Guilds,
-		Discord.IntentsBitField.Flags.GuildBans,
+		Discord.IntentsBitField.Flags.GuildModeration,
 		Discord.IntentsBitField.Flags.GuildMembers,
 		Discord.IntentsBitField.Flags.GuildMessages,
 		Discord.IntentsBitField.Flags.MessageContent,
@@ -17,7 +17,7 @@ const client = new Discord.Client({
 
 client.once("ready", () => {
 	console.log(`${client.user.tag} is logged`);
-	setStatus(client, "online", "la version 2", Discord.ActivityType.Watching);
+	setStatus(client, "online", `Version ${config.version}`, Discord.ActivityType.Watching);
 });
 
 client.on("messageCreate", async (message) => {
