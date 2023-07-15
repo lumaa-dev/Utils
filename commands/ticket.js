@@ -12,6 +12,11 @@ module.exports = {
 		usage: ["/ticket"],
 		dev: false,
 	},
+	/**
+	 * 
+	 * @param {Discord.ChatInputCommandInteraction} interaction 
+	 * @param {*} client 
+	 */
 	async execute(interaction, client = null) {
 		var ticketChannel =
 			interaction.guild.channels.cache.find((c) => c.name === "ticket") ??
@@ -23,7 +28,8 @@ module.exports = {
 			!ticketChannel ||
 			ticketChannel?.type !== Discord.ChannelType.GuildText
 		) {
-			ticketChannel = await interaction.guild.channels.create("tickets", {
+			ticketChannel = await interaction.guild.channels.create({
+				name: "tickets",
 				type: Discord.ChannelType.GuildText,
 				topic:
 					"**REGARDEZ LES MESSAGES ÉPINGLÉS**\n\nCréez des tickets, demandez de l'aide, faites une demande de ban, etc...",
