@@ -3,7 +3,7 @@
     "log": true,
     "test": true,
     "devPrefix": "u<>",
-    "version": "Dev2.1",
+    "version": "2.0",
     "utils": {
         "lang": {
             "fr": {
@@ -142,17 +142,17 @@
             }
         },
         "emojis": {
-            "check": "<:check:973972321436065802>",
-            "cross": "<:cross:973972321280860210>",
-            "warn": "<:warn:973972320194531379>",
-            "plus": "<:plus:975163068411695104>",
-            "minus": "<:minus:975163067757396059>",
-            "edit": "<:edit:975168639407910922>",
-            "lowPing": "<:low_ping:974735716267491408>",
-            "mediumPing": "<:medium_ping:974735716200353802>",
-            "ping": "<:ping:974735715839643769>",
-            "paper": "<:paper:977607026991595641>",
-            "role": "<:roles:977609229047316490>"
+            "check": ":white_check_mark:",
+            "cross": ":x:",
+            "warn": ":warn:",
+            "plus": ":plus:",
+            "minus": ":minus:",
+            "edit": "📝",
+            "lowPing": "🪫",
+            "mediumPing": "",
+            "ping": "🔋",
+            "paper": "📄",
+            "role": "🎭"
         },
         "modalPrefabs": [
             {
