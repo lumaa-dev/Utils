@@ -89,8 +89,6 @@ module.exports = {
 
 				await interaction.deferReply({ ephemeral: true });
 
-				console.log(ids);
-
 				await interaction.member.roles.remove(ids);
 				await interaction.member.roles.add(values);
 
