@@ -3,7 +3,7 @@
     "log": true,
     "test": true,
     "devPrefix": "u<>",
-    "version": "2.0",
+    "version": "2.1",
     "utils": {
         "lang": {
             "fr": {
