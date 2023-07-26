@@ -1,6 +1,10 @@
 /node_modules
 tempo.js
+*.DS_Store
 
 # token
 /functions/config.json
 functions/config.json
+
+# youtube stuff
+*.mp3
