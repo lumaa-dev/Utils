@@ -1,14 +1,21 @@
 const {
 	PermissionFlagsBits,
 	ChannelType,
-	SelectMenuBuilder,
 	ActionRowBuilder,
 	ButtonBuilder,
 	ButtonStyle,
 	ComponentType,
 	StringSelectMenuBuilder,
+	RoleSelectMenuBuilder,
+	RoleSelectMenuInteraction,
+	ChannelSelectMenuBuilder,
+	ChannelSelectMenuInteraction,
+	Role,
+	Message,
+	ChatInputCommandInteraction,
+	Client,
 } = require("discord.js");
-const { awaitMessage } = require("../functions/js/cmds");
+const { awaitMessage, awaitInteraction } = require("../functions/js/cmds");
 
 module.exports = {
 	data: {
@@ -66,6 +73,12 @@ module.exports = {
 		],
 		dev: false,
 	},
+	/**
+	 * 
+	 * @param {ChatInputCommandInteraction} interaction 
+	 * @param {Client} client 
+	 * @returns 
+	 */
 	async execute(interaction, client = null) {
 		let subName = interaction.options.getSubcommand();
 
@@ -110,8 +123,8 @@ module.exports = {
 						await message.delete();
 					} else {
 						setupData.roleChannel = await setupData.guild.channels.create(
-							"rôles",
 							{
+								name: "rôles",
 								type: ChannelType.GuildText,
 								topic: "Séléctionnez vos rôles",
 								nsfw: false,
@@ -129,7 +142,6 @@ module.exports = {
 								],
 							}
 						);
-						await message.delete();
 					}
 				},
 				(e) => {
@@ -203,35 +215,43 @@ module.exports = {
 			if (setupData.placeholderText === null) return;
 			setupData.steps += 1;
 
+			const selectRoles = new RoleSelectMenuBuilder()
+			.setCustomId("selectRoles_setup")
+			.setMaxValues(25)
+			.setMinValues(2)
+			.setPlaceholder("Séléctionnez les rôles")
+
 			interaction.editReply({
-				content: `Nice ! Tout ce passe comme sur des roulettes.\n\nVeuillez ping les rôles que vous souhaiteriez avoir dans le menu de séléction de rôles.`,
+				content: `Nice ! Tout ce passe comme sur des roulettes.\n\nVeuillez séléctionner ci-dessous les rôles que vous souhaiteriez avoir dans le menu de séléction de rôles.`,
+				components: [
+					new ActionRowBuilder()
+					.setComponents(selectRoles)
+				]
 			});
 
-			await awaitMessage(
+			await awaitInteraction(
 				setupData.mainChannel,
 				interaction.user,
+				ComponentType.RoleSelect,
 				async (collected) => {
-					message = collected.first();
+					/**@type {RoleSelectMenuInteraction} */
+					var selectRole = collected;
 
 					// var menu = setupData.roleMenuMsg.components[0].components[0];
-					var array = [];
-					if (!message.content.match(/<@&\d+>/g)) return;
-					message.content.match(/<@&\d+>/g).forEach((string) => {
-						let role = setupData.guild.roles.cache.get(string.match(/\d+/g)[0]);
-
-						array.push({
+					var array = selectRole.roles.map(role => {
+						return {
 							label: role.name,
 							value: role.id,
-							//emoji: role.unicodeEmoji ?? null,
-							//default: false,
-						});
+							default: false,
+							// emoji: role?.icon || undefined
+						}
 					});
+					
 
 					if (setupData.maxSelect > array.length)
 						setupData.maxSelect = array.length;
 
 					// setupData.actualMenu = menu;
-					message.delete();
 					await setupData.roleMenuMsg.edit({
 						content: `Séléctionnez des rôles ci-dessous :`,
 						components: [
@@ -257,6 +277,7 @@ module.exports = {
 			interaction.editReply({
 				content:
 					"👏 **Bravo !** Vous avez terminé la procédure de setup !\nVous pouvez désormais utiliser le menu de séléction de rôles sans problèmes",
+				components: []
 			});
 		} else if (subName === "add") {
 			var addData = {
@@ -274,29 +295,26 @@ module.exports = {
 
 			addData.mainChannel = interaction.channel;
 
+			const selectChannel = new ChannelSelectMenuBuilder()
+			.setChannelTypes(ChannelType.GuildText, ChannelType.GuildAnnouncement, ChannelType.PublicThread, ChannelType.PrivateThread)
+			.setCustomId("selectChannel_add")
+			.setMaxValues(1)
+			.setMinValues(1)
+			.setPlaceholder("#rôles")
+
 			interaction.reply({
 				content:
 					"Veuillez ping le channel dans lequel est le menu de séléction des rôles.",
-			});
+				components: [new ActionRowBuilder().setComponents(selectChannel)]
+			})
 
 			addData.steps = 1;
-			await awaitMessage(
+			await awaitInteraction(
 				addData.mainChannel,
 				interaction.user,
-				async (collected) => {
-					message = collected.first();
-
-					if (message.content.match(/<#\d+>/g)) {
-						addData.roleChannel = await addData.guild.channels.cache.get(
-							String(message.content.match(/<#\d+>/g)[0]).match(/\d+/g)[0]
-						);
-						await message.delete();
-					} else {
-						await message.delete();
-						return addData.mainChannel.send(
-							`Oups ! Vous n'avez pas mis de channel existant.`
-						);
-					}
+				ComponentType.ChannelSelect,
+				async (/**@type {ChannelSelectMenuInteraction}*/ collected) => {
+					addData.roleChannel = collected.channels.first();
 				},
 				(e) => {
 					return console.log(e);
@@ -308,6 +326,7 @@ module.exports = {
 
 			interaction.editReply({
 				content: `Désormais, allez dans le channel <#${addData.roleChannel.id}> et **répondez** au message avec le menu de séléction des rôles (vous pouvez dire n'importe quoi).`,
+				components: []
 			});
 
 			await awaitMessage(
@@ -316,7 +335,7 @@ module.exports = {
 				async (collected) => {
 					const message = collected.first();
 
-					if (message.reference !== null) {
+					if (message.reference !== null || message.reference?.author.id == client.user.id) {
 						addData.roleMenuMsg = await addData.roleChannel.messages.fetch(
 							message.reference.messageId
 						);
@@ -325,7 +344,7 @@ module.exports = {
 					} else {
 						await message.delete();
 						return addData.mainChannel.send(
-							`Oups ! Vous n'avez pas mis de channel existant.`
+							`Oups ! Vous n'avez pas répondu au message.`
 						);
 					}
 				}
@@ -339,6 +358,7 @@ module.exports = {
 				`Dites \`Ok\` pour continuer. <@${interaction.user.id}>`
 			);
 
+			// TODO: Remplacer tous les "ok" par des boutons
 			await awaitMessage(
 				addData.mainChannel,
 				interaction.user,
@@ -417,15 +437,23 @@ module.exports = {
 			if (addData.menuPlaceholder === null) return;
 			addData.steps += 1;
 
+			const selectRoles = new RoleSelectMenuBuilder()
+			.setCustomId("selectRoles_add")
+			.setMaxValues(25)
+			.setMinValues(2)
+			.setPlaceholder("Séléctionnez des rôles")
+
 			interaction.editReply({
-				content: `Nice ! Tout ce passe comme sur des roulettes.\n\nVeuillez ping les rôles que vous souhaiteriez avoir dans le menu de séléction de rôles.`,
+				content: `Nice ! Tout ce passe comme sur des roulettes.\n\nVeuillez séléctionner les rôles que vous souhaiteriez avoir dans le menu de séléction de rôles.`,
+				components: [new ActionRowBuilder().setComponents(selectRoles)]
 			});
 
-			await awaitMessage(
+			await awaitInteraction(
 				addData.mainChannel,
 				interaction.user,
-				async (collected) => {
-					userMessage = collected.first();
+				ComponentType.RoleSelect,
+				async (/**@type {RoleSelectMenuInteraction}*/ collected) => {
+					
 
 					//await interaction.deferReply();
 					var error = false;
@@ -434,7 +462,7 @@ module.exports = {
 						await addMenuRow(
 							addData.roleMenuMsg,
 							addData.menuPlaceholder,
-							userMessage.content,
+							collected.roles.toJSON(),
 							addData.maxSelect,
 							addData.solo
 						).catch(async (e) => {
@@ -448,7 +476,7 @@ module.exports = {
 						await addMenuRemoveButton(
 							addData.roleMenuMsg,
 							addData.menuPlaceholder,
-							userMessage.content,
+							collected.roles.toJSON(),
 							addData.maxSelect,
 							addData.solo
 						).catch(async (e) => {
@@ -464,6 +492,7 @@ module.exports = {
 
 					await interaction.editReply({
 						content: `👏 **Bravo !**\nVous pouvez désormais constater que il y a un nouveau menu dans <#${addData.roleChannel.id}>.`,
+						components: []
 					});
 				},
 				(e) => {
@@ -480,29 +509,26 @@ module.exports = {
 				roleMenuMsg: null,
 			};
 
+			const selectChannel = new ChannelSelectMenuBuilder()
+			.setChannelTypes(ChannelType.GuildText, ChannelType.GuildAnnouncement, ChannelType.PublicThread, ChannelType.PrivateThread)
+			.setCustomId("selectChannel_add")
+			.setMaxValues(1)
+			.setMinValues(1)
+			.setPlaceholder("#rôles")
+
 			interaction.reply({
 				content:
 					"Veuillez ping le channel dans lequel est le menu de séléction des rôles.",
+				components: [new ActionRowBuilder().setComponents(selectChannel)]
 			});
 
 			removeData.steps = 1;
-			await awaitMessage(
+			await awaitInteraction(
 				removeData.mainChannel,
 				interaction.user,
-				async (collected) => {
-					message = collected.first();
-
-					if (message.content.match(/<#\d+>/g)) {
-						removeData.roleChannel = await removeData.guild.channels.cache.get(
-							String(message.content.match(/<#\d+>/g)[0]).match(/\d+/g)[0]
-						);
-						await message.delete();
-					} else {
-						await message.delete();
-						return removeData.mainChannel.send(
-							`Oups ! Vous n'avez pas mis de channel existant.`
-						);
-					}
+				ComponentType.ChannelSelect,
+				async (/**@type {ChannelSelectMenuInteraction}*/ collected) => {
+					removeData.roleChannel = await collected.channels.first()
 				},
 				(e) => {
 					return console.log(e);
@@ -514,15 +540,17 @@ module.exports = {
 
 			interaction.editReply({
 				content: `Désormais, allez dans le channel <#${removeData.roleChannel.id}> et **répondez** au message avec le menu de séléction des rôles (vous pouvez dire n'importe quoi).`,
+				components: []
 			});
 
 			await awaitMessage(
 				removeData.roleChannel,
 				interaction.user,
 				async (collected) => {
+					/**@type {Message} */
 					const message = collected.first();
 
-					if (message.reference !== null) {
+					if (message.reference !== null || message.reference?.author.id == client.user.id) {
 						removeData.roleMenuMsg =
 							await removeData.roleChannel.messages.fetch(
 								message.reference.messageId
@@ -532,7 +560,7 @@ module.exports = {
 					} else {
 						await message.delete();
 						return removeData.mainChannel.send(
-							`Oups ! Vous n'avez pas mis de channel existant.`
+							`Oups ! Vous n'avez pas répondu correctement au message.`
 						);
 					}
 				}
@@ -568,6 +596,7 @@ module.exports = {
 
 			if (removeData.confirmed === false) return;
 
+			// TODO: Remplacer par un menu
 			interaction.editReply({
 				content: `Merci ! Maintenant, quelle menu voulez-vous enlever ? **Le bouton compte comme un menu.**\n*Par example, le premier menu est le numéro 1, le second est le numéro 2, etc...*`,
 			});
@@ -599,29 +628,26 @@ module.exports = {
 				roleChannel: null,
 			};
 
+			const selectChannel = new ChannelSelectMenuBuilder()
+			.setChannelTypes(ChannelType.GuildText, ChannelType.GuildAnnouncement, ChannelType.PublicThread, ChannelType.PrivateThread)
+			.setCustomId("selectChannel_add")
+			.setMaxValues(1)
+			.setMinValues(1)
+			.setPlaceholder("#rôles")
+
 			interaction.reply({
 				content:
 					"Veuillez ping le channel dans lequel est le menu de séléction des rôles.",
+				components: [new ActionRowBuilder().setComponents(selectChannel)]
 			});
 
 			buttonData.steps = 1;
-			await awaitMessage(
+			await awaitInteraction(
 				buttonData.mainChannel,
 				interaction.user,
-				async (collected) => {
-					message = collected.first();
-
-					if (message.content.match(/<#\d+>/g)) {
-						buttonData.roleChannel = await buttonData.guild.channels.cache.get(
-							String(message.content.match(/<#\d+>/g)[0]).match(/\d+/g)[0]
-						);
-						await message.delete();
-					} else {
-						await message.delete();
-						return buttonData.mainChannel.send(
-							`Oups ! Vous n'avez pas mis de channel existant.`
-						);
-					}
+				ComponentType.ChannelSelect,
+				async (/**@type {ChannelSelectMenuInteraction}*/collected) => {
+					buttonData.roleChannel = collected.channels.first();
 				},
 				(e) => {
 					return console.log(e);
@@ -633,6 +659,7 @@ module.exports = {
 
 			interaction.editReply({
 				content: `Désormais, allez dans le channel <#${buttonData.roleChannel.id}> et **répondez** au message avec le menu de séléction des rôles (vous pouvez dire n'importe quoi).`,
+				components: []
 			});
 
 			await awaitMessage(
@@ -641,7 +668,7 @@ module.exports = {
 				async (collected) => {
 					const message = collected.first();
 
-					if (message.reference !== null) {
+					if (message.reference !== null || message.reference?.author.id == client.user.id) {
 						buttonData.roleMenuMsg =
 							await buttonData.roleChannel.messages.fetch(
 								message.reference.messageId
@@ -651,7 +678,7 @@ module.exports = {
 					} else {
 						await message.delete();
 						return buttonData.mainChannel.send(
-							`Oups ! Vous n'avez pas mis de channel existant.`
+							`Oups ! Vous n'avez pas répondu correctement.`
 						);
 					}
 				}
@@ -705,7 +732,7 @@ module.exports = {
  * Add a row to the menu
  * @param {Message} message - The message object that the menu is being added to.
  * @param {String} placeholder - The placeholder text that appears in the menu.
- * @param {String} roles - The roles to add to the menu.
+ * @param {Role[]} roles - The roles to add to the menu.
  * @param {Number} maxSelect - The maximum number of roles that can be selected.
  * @param {Boolean} solo - If the menu is acting by itself
  * @returns The return value is a Promise that resolves to the edited message.
@@ -719,21 +746,17 @@ async function addMenuRow(message, placeholder, roles, maxSelect, solo = true) {
 		componentsToSet.push(x);
 	});
 
-	var array = [];
-	if (!roles.match(/<@&\d+>/g)) return;
-	roles.match(/<@&\d+>/g).forEach((string) => {
-		let role = message.guild.roles.cache.get(string.match(/\d+/g)[0]);
-
-		array.push({
+	var array = roles.map(role => {
+		return {
 			label: role.name,
 			value: role.id,
-			//emoji: role.unicodeEmoji ?? null,
-			//default: false,
-		});
-	});
+			emoji: undefined,
+			default: false
+		}
+	})
 
 	const newComponent = new ActionRowBuilder().addComponents([
-		new SelectMenuBuilder()
+		new StringSelectMenuBuilder()
 			.setMinValues(1)
 			.setMaxValues(maxSelect)
 			.setCustomId(
@@ -748,8 +771,6 @@ async function addMenuRow(message, placeholder, roles, maxSelect, solo = true) {
 
 	componentsToSet.push(newComponent);
 
-	console.log(componentsToSet);
-
 	if (componentsToSet.length > 5)
 		throw Error(
 			"Vous ne pouvez pas avoir plus de 5 menus de séléction de rôles."
@@ -762,7 +783,7 @@ async function addMenuRow(message, placeholder, roles, maxSelect, solo = true) {
  * It adds a select menu and a button to remove all roles from a user
  * @param {Message} message - The message object that the button will be added to.
  * @param {String} placeholder - The placeholder text that appears in the menu.
- * @param {String} roles - The roles that the user can select.
+ * @param {Role[]} roles - The roles that the user can select.
  * @param {Boolean} solo - If the menu acts by itself
  * @param {Number} maxSelect - The maximum number of roles that can be selected.
  */
@@ -794,21 +815,17 @@ async function addMenuRemoveButton(
 		});
 	}
 
-	var array = [];
-	if (!roles.match(/<@&\d+>/g)) return;
-	roles.match(/<@&\d+>/g).forEach((string) => {
-		let role = message.guild.roles.cache.get(string.match(/\d+/g)[0]);
-
-		array.push({
+	var array = roles.map(role => {
+		return {
 			label: role.name,
 			value: role.id,
-			//emoji: role.unicodeEmoji ?? null,
-			//default: false,
-		});
-	});
+			emoji: undefined,
+			default: false
+		}
+	})
 
 	const newComponent = new ActionRowBuilder().addComponents([
-		new SelectMenuBuilder()
+		new StringSelectMenuBuilder()
 			.setMinValues(1)
 			.setMaxValues(maxSelect)
 			.setCustomId(
@@ -859,8 +876,6 @@ async function addRemoveButton(message) {
 			"Vous ne pouvez pas avoir plus de 4 menus de séléction de rôles et un bouton de suppression."
 		);
 
-	console.log(componentsToSet);
-
 	await message.edit({
 		content: message.content,
 		components: componentsToSet,
@@ -903,15 +918,15 @@ function actionRowstoBuilders(actionRows) {
 
 /**
  * Remove a row from the menu
- * @param message - The message object that was sent by the user.
- * @param index - The index of the row to remove.
+ * @param {Message} message - The message object that was sent by the user.
+ * @param {int}index - The index of the row to remove.
  * @returns Nothing.
  */
 async function removeMenuRow(message, index) {
 	const all = message.components;
 	all.splice(index - 1, 1);
 
-	if (all.length <= 0 || all[0].type === "BUTTON") return message.delete();
+	if (all.length <= 0 || all[0].type === ComponentType.Button) return message.delete();
 	else {
 		message.edit({
 			content: message.content,
