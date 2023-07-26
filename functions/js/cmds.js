@@ -3,6 +3,7 @@ const fs = require("fs");
 const Embeds = require("./embeds");
 const config = require("../config.json");
 const { checkConfig } = require("./other");
+const { ComponentType } = require("discord.js");
 
 module.exports = {
 	/**
@@ -255,20 +256,21 @@ module.exports = {
 	 * Waits for an interaction in a message
 	 * @param {Discord.Message} message The message with interactors
 	 * @param {Discord.User} user The user that will respond
-	 * @param {Discord.MessageComponentType | String} componentType The type of interactor (BUTTON, ACTION_ROW, SELECT_MENU)
+	 * @param {Discord.ComponentType} componentType The type of interactor (BUTTON, ACTION_ROW, SELECT_MENU)
 	 * @param {Function} succeed The function when it will succeed
 	 * @param {Function} error The function when it will get an error
 	 */
 	async awaitInteraction(
 		message,
 		user,
-		componentType = "BUTTON",
+		componentType = ComponentType.Button,
 		succeed = (collected) => console.log(collected),
 		error = (e) => {
 			return console.error(e);
 		}
 	) {
 		const filter = (i) => i.user.id == user.id;
+		
 		return await message
 			.awaitMessageComponent({
 				componentType: componentType,
